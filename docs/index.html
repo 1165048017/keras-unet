@@ -105,12 +105,19 @@ async function setupVideo(src) {
 
 function pickWebCam() {
   processing = false;
-  if (!webcamElement.paused)
-    webcamElement.pause();
+  stopVideo();
   setupWebcam().then(() => {
     processing = true;
     processWebCam();
   });
+}
+
+function stopVideo()
+{
+  if (webcamElement.srcObject && webcamElement.srcObject.getTracks()[0])
+    webcamElement.srcObject.getTracks()[0].stop();
+  if (!webcamElement.paused)
+    webcamElement.pause();
 }
 
 async function setupWebcam() {
@@ -209,15 +216,6 @@ async function init() {
     a.textContent = videos[i].split('.')[0];
     a.dataset.src = src;
     a.className = 'videolink';
-    /*a.addEventListener('click', function () {
-      processing = false;
-      if (!webcamElement.paused)
-        webcamElement.pause();
-      setupVideo(this.dataset.src).then(() => {
-        processing= true;
-        processWebCam();
-      });
-    }, false);*/
     imagecontainer.appendChild(a);
   }
   for (var i=0;i<images.length;i++)
@@ -226,13 +224,6 @@ async function init() {
   	img.src = images[i];
 		img.className = 'example';
   	img.title = images[i];
-  	/*img.onclick = function () {
-  		processing = false;
-      if (!webcamElement.paused)
-        webcamElement.pause();
-  		fpsdiv.textContent = '';
-      processImage(this);
-  	};*/
   	imagecontainer.appendChild(img);
   }
 
@@ -241,16 +232,14 @@ async function init() {
   // add click handlers after model is loaded
   document.querySelectorAll('.example').forEach(img => img.onclick = function () {
     processing = false;
-    if (!webcamElement.paused)
-      webcamElement.pause();
+    stopVideo();
     fpsdiv.textContent = '';
     processImage(this);
   });
 
   document.querySelectorAll('.videolink').forEach(a => a.addEventListener('click', function () {
     processing = false;
-    if (!webcamElement.paused)
-      webcamElement.pause();
+    stopVideo();
     setupVideo(this.dataset.src).then(() => {
       processing= true;
       processWebCam();
