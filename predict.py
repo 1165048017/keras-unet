@@ -8,8 +8,11 @@ else:
   folder = 'headshoulderdata'
 
 seg = fingernailseg(folder)
+
 print('create_unet')
-seg.create_unet()
+#seg.create_unet()
+seg.create_separable_unet()
+
 print('loading model')
 seg.load_model()
 print('predicting')

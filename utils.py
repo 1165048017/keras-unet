@@ -5,7 +5,7 @@ from PIL import Image
 from sklearn.model_selection import train_test_split
 import keras
 from keras.models import Model
-from keras.layers import Conv2D, MaxPooling2D, Input, Conv2DTranspose, Concatenate
+from keras.layers import SeparableConv2D, Conv2D, MaxPooling2D, Input, Conv2DTranspose, Concatenate
 from keras.optimizers import Adam, SGD
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 from keras import backend as K
@@ -87,7 +87,7 @@ class fingernailseg:
         plt.figure(figsize=(5,5))
         plt.imshow(self.X_train[im_num,:,:,:])
         plt.imshow(self.y[im_num,:,:,0], alpha=0.3)
-        
+
     def create_unet(self):
         s = Input(self.sz)
         c1 = Conv2D(8, 3, activation='relu', padding='same') (s)
@@ -125,6 +125,43 @@ class fingernailseg:
         print(self.model.summary())
         self.model.compile(optimizer = Adam(), loss = 'binary_crossentropy', metrics = [mean_iou])
         
+    def create_separable_unet(self):
+        s = Input(self.sz)
+        c1 = Conv2D(8, 3, activation='relu', padding='same') (s)
+        c1 = Conv2D(8, 3, activation='relu', padding='same') (c1)
+        p1 = MaxPooling2D() (c1)
+        c2 = SeparableConv2D(16, 3, activation='relu', padding='same') (p1)
+        c2 = SeparableConv2D(16, 3, activation='relu', padding='same') (c2)
+        p2 = MaxPooling2D() (c2)
+        c3 = SeparableConv2D(32, 3, activation='relu', padding='same') (p2)
+        c3 = SeparableConv2D(32, 3, activation='relu', padding='same') (c3)
+        p3 = MaxPooling2D() (c3)
+        c4 = SeparableConv2D(64, 3, activation='relu', padding='same') (p3)
+        c4 = SeparableConv2D(64, 3, activation='relu', padding='same') (c4)
+        p4 = MaxPooling2D() (c4)
+        c5 = SeparableConv2D(128, 3, activation='relu', padding='same') (p4)
+        c5 = SeparableConv2D(128, 3, activation='relu', padding='same') (c5)
+        u6 = Conv2DTranspose(64, 2, strides=(2, 2), padding='same') (c5)
+        u6 = Concatenate(axis=3)([u6, c4])
+        c6 = SeparableConv2D(64, 3, activation='relu', padding='same') (u6)
+        c6 = SeparableConv2D(64, 3, activation='relu', padding='same') (c6)
+        u7 = Conv2DTranspose(32, 2, strides=(2, 2), padding='same') (c6)
+        u7 = Concatenate(axis=3)([u7, c3])
+        c7 = SeparableConv2D(32, 3, activation='relu', padding='same') (u7)
+        c7 = SeparableConv2D(32, 3, activation='relu', padding='same') (c7)
+        u8 = Conv2DTranspose(16, 2, strides=(2, 2), padding='same') (c7)
+        u8 = Concatenate(axis=3)([u8, c2])
+        c8 = SeparableConv2D(16, 3, activation='relu', padding='same') (u8)
+        c8 = SeparableConv2D(16, 3, activation='relu', padding='same') (c8)
+        u9 = Conv2DTranspose(8, 2, strides=(2, 2), padding='same') (c8)
+        u9 = Concatenate(axis=3)([u9, c1])
+        c9 = SeparableConv2D(8, 3, activation='relu', padding='same') (u9)
+        c9 = SeparableConv2D(8, 3, activation='relu', padding='same') (c9)
+        outputs = Conv2D(1, 1, activation='sigmoid') (c9)
+        self.model = Model(inputs=[s], outputs=[outputs])
+        print(self.model.summary())
+        self.model.compile(optimizer = Adam(), loss = 'binary_crossentropy', metrics = [mean_iou])
+
     def build_callbacks(self):
         checkpointer = ModelCheckpoint(filepath=self.folder+'_unet.h5', verbose=0, save_best_only=True, save_weights_only=True)
         stop_train = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
