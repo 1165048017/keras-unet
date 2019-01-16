@@ -9,9 +9,17 @@ else:
 
 seg = fingernailseg(folder)
 
-print('create_unet')
-#seg.create_unet()
-seg.create_separable_unet()
+if len(sys.argv)>2:
+  separable = True
+else:
+  separable = False
+
+if separable:
+  print('create separable unet');
+  seg.create_separable_unet()
+else:
+  print('create unet');
+  seg.create_unet()
 
 print('loading model')
 seg.load_model()

@@ -16,10 +16,12 @@ body{font-family:-apple-system,Arial,sans-serif;}
 #webcamElement{display:none;max-width:224px}
 .example{width:224px;margin:2px}
 #container{position:relative}
-#imagecontainer {width:256px}
+#examples {margin:8px;width:256px}
+#videoexamples{}
+#imageexamples > img {cursor:pointer;width:64px}
 button{padding:4px;border-radius:5px;text-transform:uppercase;font-size:11px;font-weight:bold}
 #elements{position:absolute;top:0;left:256px;margin:8px}
-#imagecontainer > img {cursor:pointer;width:64px}
+
 .videolink{display:block}
 #canvasElement2{display:none}
 #canvasElement3{
@@ -34,11 +36,25 @@ canvas{margin:0}
 </head>
 <body>
 <div id='statusDiv'></div>
+UNet <select onchange='reloadModel(this.value)'>
+        <option value='headshoulderdata'>Head Shoulder</option>
+        <option value='humanparsingdata'>Human Parsing</option>
+        <option value='persondata'>Person</option>
+      </select>
+<br>
+SeparableConv-UNet <select onchange='reloadModel(this.value)'>
+        <option value='headshoulderdata_separable'>Head Shoulder (Separable Conv)</option>
+        <option value='humanparsingdata_separable'>Human Parsing (Separable Conv)</option>
+        <option value='persondata_separable'>Person (Separable Conv)</option>
+      </select>
+<br>
 Click on a test image to see the result of the segmentation by UNet<BR>
 You can also <b>drag and drop</b> an image file to process it<BR>
 <div id="container">
-  <div id="imagecontainer">
+  <div id="examples">
     <button onclick='pickWebCam()'>webcam</button>
+    <div id="videoexamples"></div>
+    <div id="imageexamples"></div>
   </div>
   <div id="elements">
     <video width="224" height="224" autoplay="true" id="webcamElement"></video>
@@ -53,8 +69,27 @@ You can also <b>drag and drop</b> an image file to process it<BR>
 var unet = null;
 const imw = 224;
 const imh = 224;
-const images = '00010.jpg,00011.jpg,00012.jpg,00013.jpg,00014.jpg,02628.jpg,02631.jpg,02632.jpg,02618.jpg'.split(',');
+const imageExamples = {
+  'headshoulderdata':'00010.jpg,00011.jpg,00012.jpg,00013.jpg,00014.jpg,02628.jpg,02631.jpg,02632.jpg,02618.jpg'.split(','),
+  'humanparsingdata':'2500_1064.jpg,dataset10k_4596.jpg,dataset10k_9634.jpg,dataset10k_992.jpg,dataset10k_9982.jpg,dataset10k_9990.jpg,dataset10k_9991.jpg,dataset10k_9993.jpg,fash_494.jpg'.split(','),
+  'persondata':'10203.jpg,10206.jpg,10210.jpg,10212.jpg,10245.jpg,10247.jpg,10259.jpg,10286.jpg,10299.jpg'.split(',')
+};
+
+const videoExamples = {
+  'headshoulderdata':['test.mp4'],
+  'humanparsingdata':[],
+  'persondata':[]
+}
+
 var modelFolder = 'headshoulderdata';
+
+async function reloadModel(newModel)
+{
+  processing = false;
+  stopVideo();
+  modelFolder = newModel;
+  init();
+}
 
 async function loadUNet() {
 	statusDiv.textContent = 'loading model...';
@@ -207,24 +242,30 @@ var fps = 0;
 
 async function init() {
 
-  var videos = ['test.mp4'];
-  for (var i=0;i<videos.length;i++)
+  var key = modelFolder.split('_')[0]; // modelFolder can be '..._separable', we just want the first part
+  console.log(modelFolder,key);
+  var listVideos = videoExamples[key];
+  videoexamples.textContent = '';
+  for (var i=0;i<listVideos.length;i++)
   {
-    var src = videos[i];
+    var src = listVideos[i];
     var a = document.createElement('A');
     a.href = 'javascript:void(0)';
-    a.textContent = videos[i].split('.')[0];
+    a.textContent = listVideos[i];//.split('.')[0];
     a.dataset.src = src;
     a.className = 'videolink';
-    imagecontainer.appendChild(a);
+    videoexamples.appendChild(a);
   }
-  for (var i=0;i<images.length;i++)
+  
+  var listImages = imageExamples[key];
+  imageexamples.textContent = '';
+  for (var i=0;i<listImages.length;i++)
   {
   	var img = document.createElement('img');
-  	img.src = images[i];
+  	img.src = listImages[i];
 		img.className = 'example';
-  	img.title = images[i];
-  	imagecontainer.appendChild(img);
+  	img.title = listImages[i];
+  	imageexamples.appendChild(img);
   }
 
   unet = await loadUNet();

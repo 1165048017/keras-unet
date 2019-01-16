@@ -14,6 +14,7 @@ import tensorflow as tf
 import tensorflowjs as tfjs
 
 mainfolder = None
+separable = ''
 
 def mean_iou(y_true, y_pred):
     yt0 = y_true[:,:,:,0]
@@ -38,7 +39,7 @@ class fingernailseg:
           self.folder = folder
         else:
           self.folder = 'headshoulderdata'
-        mainfolder = self.folder
+        #mainfolder = self.folder
         print('init.folder=',self.folder)
         mask_files = os.listdir(self.folder + '/mask')
         raw_files = os.listdir(self.folder + '/raw')
@@ -83,10 +84,10 @@ class fingernailseg:
         self.y = np.expand_dims(y,3)
         self.sz = self.sz[::-1] + (3,)
         
-    def plot_example(self, im_num = 13):
-        plt.figure(figsize=(5,5))
-        plt.imshow(self.X_train[im_num,:,:,:])
-        plt.imshow(self.y[im_num,:,:,0], alpha=0.3)
+#     def plot_example(self, im_num = 13):
+#         plt.figure(figsize=(5,5))
+#         plt.imshow(self.X_train[im_num,:,:,:])
+#         plt.imshow(self.y[im_num,:,:,0], alpha=0.3)
 
     def create_unet(self):
         s = Input(self.sz)
@@ -126,6 +127,8 @@ class fingernailseg:
         self.model.compile(optimizer = Adam(), loss = 'binary_crossentropy', metrics = [mean_iou])
         
     def create_separable_unet(self):
+        global separable
+        separable = '_separable'
         s = Input(self.sz)
         c1 = Conv2D(8, 3, activation='relu', padding='same') (s)
         c1 = Conv2D(8, 3, activation='relu', padding='same') (c1)
@@ -163,7 +166,8 @@ class fingernailseg:
         self.model.compile(optimizer = Adam(), loss = 'binary_crossentropy', metrics = [mean_iou])
 
     def build_callbacks(self):
-        checkpointer = ModelCheckpoint(filepath=self.folder+'_unet.h5', verbose=0, save_best_only=True, save_weights_only=True)
+        global separable
+        checkpointer = ModelCheckpoint(filepath=self.folder+separable+'_unet.h5', verbose=0, save_best_only=True, save_weights_only=True)
         stop_train = EarlyStopping(monitor='val_loss', patience=10, verbose=1)
         reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.8,
                     patience=3, min_lr=0.00001)
@@ -178,12 +182,13 @@ class fingernailseg:
                        batch_size=self.batch_size, epochs=self.epochs, callbacks=self.build_callbacks())
             
     def load_model(self):
-        print('loading model weights',self.folder+'_unet.h5')
-        self.model.load_weights(self.folder+'_unet.h5')
-        print('saving model as json',self.folder+'_unet.json')
-        self.model.save(self.folder+'_unet.json')
-        print('converting model to tfjs','docs/' + self.folder)
-        tfjs.converters.save_keras_model(self.model, 'docs/' + self.folder)
+        global separable
+        print('loading model weights',self.folder+separable+'_unet.h5')
+        self.model.load_weights(self.folder+separable+'_unet.h5')
+        print('saving model as json',self.folder+separable+'_unet.json')
+        self.model.save(self.folder+separable+'_unet.json')
+        print('converting model to tfjs','docs/' + self.folder+separable)
+        tfjs.converters.save_keras_model(self.model, 'docs/' + self.folder+separable)
 
     def predict(self):
         return self.model.predict(self.X_test, batch_size=self.batch_size, verbose=0)
