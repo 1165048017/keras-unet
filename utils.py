@@ -182,8 +182,8 @@ class fingernailseg:
         self.model.load_weights(self.folder+'_unet.h5')
         print('saving model as json',self.folder+'_unet.json')
         self.model.save(self.folder+'_unet.json')
-        print('converting model to tfjs','tfjs/' + self.folder)
-        tfjs.converters.save_keras_model(self.model, 'tfjs/' + self.folder)
+        print('converting model to tfjs','docs/' + self.folder)
+        tfjs.converters.save_keras_model(self.model, 'docs/' + self.folder)
 
     def predict(self):
         return self.model.predict(self.X_test, batch_size=self.batch_size, verbose=0)
